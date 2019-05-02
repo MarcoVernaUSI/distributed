@@ -104,10 +104,10 @@ def run_simulation(timesteps, n_agents, L, init= None):
 		for i in range(n_agents):
 			goal_list[i]=dist*(i+1)
 
-		controller = PID(-0.8,0,0)
+		controller = PID(-5,0,0)
 
 		#Parameters
-		mas_vel = 1 # m/s
+		mas_vel = 2 # m/s
 		dt= 0.1
 		for t in range (1, timesteps):
 			for i in range( 0, len(agents_list)):
