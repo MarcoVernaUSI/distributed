@@ -8,8 +8,6 @@ import matplotlib.animation as animation
 import random as rand
 import tensorflow as tf
 from simple_net import Net
-from rnn_net import RNet
-
 
 def mktr(x, y):
 	return np.array([[1,0,x],
@@ -161,15 +159,17 @@ def run_simulation_learned(timesteps, n_agents, L, Net, init=None):
 		mas_vel = 1 # m/s
 		
 		for t in range (1, timesteps):
-			inputs = states[t-1,:,3:]
+
+			inputs = states[t-1,:,3:5]
 			inputs = inputs.reshape(1, -1)
 			#predicted_velocities = Net.predict(inputs)
+
 			
 			for i in range( 0, len(agents_list)):
 #				error = agents_list[i].getxy()[0]-goal_list[i]
 				
 				if isinstance(Net, (list,)):
-					predicted_velocities, state = Net[i].predict(np.array([inputs[0,4*i:4*i+4]]), state)
+					predicted_velocities = Net[i].predict(np.array([inputs[0,2*i:2*i+2]]))
 					v = predicted_velocities[0,0]
 				else:
 					predicted_velocities = Net.predict(inputs)
@@ -328,29 +328,27 @@ if __name__ == '__main__':
 	L = 10. # Distanza tra i due muri
 	N = 5 # Number of agents
 	timesteps = 120 #timesteps
-	n_simulation = 100 # number of simulations
+	n_simulation = 1000 # number of simulations
 
-	net_inputs = []
-	net_outputs = []
+	net_inputs = None
+	net_outputs = None
 
 
 	for i in range(n_simulation):
 		states, target_vels = run_simulation(timesteps,N,L)
 		
 		# prepara data for the training of the net
-		t_data=states[:,:,5:7]
+
+		t_data=states[:,:,3:5]
+
 		t_data = t_data.reshape(t_data.shape[0], -1)
 
 		if net_inputs is None:
 			net_inputs = t_data
 			net_outputs=target_vels
 		else:
-			net_inputs.append(t_data)
-			net_outputs.append(target_vels)
-
-	net_inputs=np.array(net_inputs)
-	net_outputs=np.array(net_outputs)
-
+			net_inputs = np.append(net_inputs,t_data,axis=0)
+			net_outputs = np.append(net_outputs,target_vels,axis=0)
 
 
 	#train the global net
@@ -359,27 +357,36 @@ if __name__ == '__main__':
 #	Net.train()
 
 	# train one net for each agent
+
+
+#	NetA = Net(net_inputs.shape[1]/N,net_outputs.shape[1]/N,500,net_inputs.shape[0],1,0.12)
+	#NetA.set_batch_data(net_inputs[:,:,2*i:2*i+2],net_outputs[:,:,i].reshape(net_outputs.shape[0],net_outputs.shape[1], 1))
+	#NetA.set_batch_data(net_inputs.reshape(:,:,2) , net_outputs[:,:,i].reshape(net_outputs.shape[0],net_outputs.shape[1], 1))
+		
+
+	# train one net for each agent
 	Nets = []
 
 	for i in range(N):
-		NetA = RNet([net_inputs.shape[1],net_inputs.shape[2]/N],[net_outputs.shape[1],int(net_outputs.shape[2]/N)],10,10,1,0.001,str(i))
-
-
+		NetA = Net(net_inputs.shape[1]/N,net_outputs.shape[1]/N,500,100,1,0.001)
+		#NetA.set_batch_data(net_inputs[:,2*i:2*i+2],np.array([net_outputs[:,i]]).reshape(-1,1))
+		NetA.set_batch_data(net_inputs.reshape(-1,2),np.array([net_outputs]).reshape(-1,1))
 		
-		NetA.set_batch_data(net_inputs[:,:,2*i:2*i+2],net_outputs[:,:,i].reshape(net_outputs.shape[0],net_outputs.shape[1], 1))
-		#NetA.set_batch_data(net_inputs.reshape(:,:,2),net_outputs[:,:,i].reshape(net_outputs.shape[0],net_outputs.shape[1], 1))
-		
-		NetA.train()
+		NetA.train(str(i))
 		print('train net ',i,' done')
 		Nets.append(NetA)
 
+
+
+	#NetA.train()
+	#print('train net ',i,' done')
+	
 	# Make a confront of the two simulations
 	init = []
 	for i in range(N):
 		init.append(np.matmul(np.eye(3), mktr(rand.random()*L, 0)))
 
 	states, _ =run_simulation(timesteps,N,L,init)
-
 	states_L= run_simulation_learned(timesteps,N,L,Nets,init)
 
 
