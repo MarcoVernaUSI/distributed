@@ -1,3 +1,7 @@
+####################
+# Plotter
+####################
+
 from matplotlib import pyplot, transforms
 from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt

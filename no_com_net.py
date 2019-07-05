@@ -5,6 +5,7 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+import numpy as np
 
 class Net:
     def __init__(self, input_size, epochs=100):
@@ -17,7 +18,7 @@ class Net:
                 kernel_initializer=tf.initializers.truncated_normal, 
                 bias_initializer=tf.initializers.truncated_normal, 
                 input_shape=(self.input_size,)),
-            layers.Dense(1)
+            layers.Dense(output_size)
         ])
 
         self.optimizer = tf.keras.optimizers.Adam()
@@ -36,3 +37,11 @@ class Net:
 
     def predict(self, data):
         return self.model.predict(data)
+
+    def prepare_data(self, net_inputs, net_outputs):
+        t_data= np.array(net_inputs)
+        targets= np.array(net_outputs)
+        t_data=t_data[:,:,:,3:5]
+        t_data = t_data.reshape(t_data.shape[0]*t_data.shape[1], -1)
+        targets = targets.reshape(targets.shape[0]*targets.shape[1], -1)
+        return t_data, targets

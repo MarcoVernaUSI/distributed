@@ -82,7 +82,7 @@ class Simulator:
         return states, target_vels
 
 
-    def run_learned(self, Net, init=None):
+    def run_learned(self, Net, init=None, com = 0):
         timesteps = self.timesteps 
         n_agents = self.N
         L = self.L
@@ -113,23 +113,37 @@ class Simulator:
 
         #Parameters
         mas_vel = 1 # m/s
-        
+        if com:
+            communication = np.zeros((5,2), dtype=np.float32)        
         for t in range (1, timesteps):
             inputs = states[t-1,:,3:5]
         #   inputs = inputs.reshape(1, -1)
         
-            for i in range( 0, len(agents_list)):
-#               error = agents_list[i].getxy()[0]-goal_list[i]
-                
-                if isinstance(Net, (list,)):
-                    predicted_velocities = Net[i].predict(np.array([inputs[0,2*i:2*i+2]]))
-                    v = predicted_velocities[0,0]
-                else:
-                    predicted_velocities = Net.predict(inputs)
+            
+            if com:
+                predicted_velocities, communication = Net.predict(inputs, communication)
+                for i in range( 0, len(agents_list)):
                     v = predicted_velocities[i,0]
+                    v = np.clip(v, -mas_vel, +mas_vel)
+                    agents_list[i].step(v,dt)
+            else:
+                for i in range( 0, len(agents_list)):
+#                   error = agents_list[i].getxy()[0]-goal_list[i]
                 
-                v = np.clip(v, -mas_vel, +mas_vel)
-                agents_list[i].step(v,dt)
+                    ########## Sta parte è da rivedere fatta la rete centralizzata
+
+
+                    if isinstance(Net, (list,)):
+                        predicted_velocities = Net[i].predict(np.array([inputs[0,2*i:2*i+2]]))
+                        v = predicted_velocities[0,0]
+                    else:
+                        predicted_velocities = Net.predict(inputs)
+                        v = predicted_velocities[i,0]
+
+
+                    v = np.clip(v, -mas_vel, +mas_vel)
+                    agents_list[i].step(v,dt)
+
             for i in range( 0, len(agents_list)):
                 agents_list[i].state, agents_list[i].state_d = agents_list[i].observe(agents_list,L, dt)
             states[t] = save_state(agents_list)
