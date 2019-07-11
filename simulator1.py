@@ -63,7 +63,7 @@ class Simulator:
         for i in range(n_agents):
             goal_list[i]=dist*(i+1)
 
-        controller = PID(-5,0,0) 
+        controller = PID(-3,0,0) #(-5, 0, 0)
 
         #Parameters
         mas_vel = 2 # m/s
@@ -118,8 +118,6 @@ class Simulator:
         for t in range (1, timesteps):
             inputs = states[t-1,:,3:5]
         #   inputs = inputs.reshape(1, -1)
-        
-            
             if com:
                 predicted_velocities, communication = Net.predict(inputs, communication)
                 for i in range( 0, len(agents_list)):
