@@ -67,10 +67,13 @@ class Simulator:
 
         #Parameters
         mas_vel = 2 # m/s
-        
+
+        errors = np.zeros((timesteps,), dtype=np.float32)
         for t in range (1, timesteps):
+            tot_error = 0
             for i in range( 0, len(agents_list)):
                 error = agents_list[i].getxy()[0]-goal_list[i]
+                tot_error = tot_error + abs(error)
                 v = controller.step(error, dt)
                 v = np.clip(v, -mas_vel, +mas_vel)
                 agents_list[i].step(v,dt)
@@ -78,11 +81,12 @@ class Simulator:
             for i in range( 0, len(agents_list)):
                 agents_list[i].state, agents_list[i].state_d = agents_list[i].observe(agents_list,L,dt)
             states[t] = save_state(agents_list)
+            errors[t] = tot_error
 
-        return states, target_vels
+        return states, target_vels, errors
 
 
-    def run_learned(self, Net, init=None, com = 0):
+    def run_learned(self, Net, input_size, init=None, com = 0):
         timesteps = self.timesteps 
         n_agents = self.N
         L = self.L
@@ -111,42 +115,50 @@ class Simulator:
         #save initial state
         states[0]= save_state(agents_list)
 
+
+        # goal serve per calcolare errore, non è utilizzato dal controller
+        goal_list = [None]*n_agents
+        dist = L/(n_agents+1)
+        for i in range(n_agents):
+            goal_list[i]=dist*(i+1)
+
+
+
         #Parameters
         mas_vel = 1 # m/s
         if com:
-            communication = np.zeros((5,2), dtype=np.float32)        
+            communication = np.zeros((5,2), dtype=np.float32)
+
+        errors = np.zeros((timesteps,), dtype=np.float32)
         for t in range (1, timesteps):
             inputs = states[t-1,:,3:5]
-        #   inputs = inputs.reshape(1, -1)
+            inputs = inputs.reshape(-1,input_size)
+
+            tot_error = 0
             if com:
                 predicted_velocities, communication = Net.predict(inputs, communication)
                 for i in range( 0, len(agents_list)):
                     v = predicted_velocities[i,0]
                     v = np.clip(v, -mas_vel, +mas_vel)
+                    error = agents_list[i].getxy()[0]-goal_list[i]
+                    tot_error = tot_error + abs(error)
                     agents_list[i].step(v,dt)
             else:
-                for i in range( 0, len(agents_list)):
-#                   error = agents_list[i].getxy()[0]-goal_list[i]
-                
-                    ########## Sta parte è da rivedere fatta la rete centralizzata
-
-
-                    if isinstance(Net, (list,)):
-                        predicted_velocities = Net[i].predict(np.array([inputs[0,2*i:2*i+2]]))
-                        v = predicted_velocities[0,0]
-                    else:
-                        predicted_velocities = Net.predict(inputs)
-                        v = predicted_velocities[i,0]
-
-
+                predicted_velocities = Net.predict(inputs)
+                predicted_velocities= predicted_velocities.reshape(n_agents,-1)
+                for i in range( 0, len(agents_list)):   
+                    v = predicted_velocities[i,0]
                     v = np.clip(v, -mas_vel, +mas_vel)
+                    error = agents_list[i].getxy()[0]-goal_list[i]
+                    tot_error = tot_error + abs(error)
                     agents_list[i].step(v,dt)
 
             for i in range( 0, len(agents_list)):
                 agents_list[i].state, agents_list[i].state_d = agents_list[i].observe(agents_list,L, dt)
             states[t] = save_state(agents_list)
+            errors[t] = tot_error
 
-        return states
+        return states, errors
 
 
 def save_state(agents_list):

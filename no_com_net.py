@@ -10,7 +10,7 @@ import numpy as np
 class Net:
     def __init__(self, input_size, epochs=100):
         self.input_size = input_size
-        self.output_size = 1
+        self.output_size = input_size//2
         self.epochs = epochs
         
         self.model = keras.Sequential([
@@ -18,7 +18,7 @@ class Net:
                 kernel_initializer=tf.initializers.truncated_normal, 
                 bias_initializer=tf.initializers.truncated_normal, 
                 input_shape=(self.input_size,)),
-            layers.Dense(output_size)
+            layers.Dense(self.output_size)
         ])
 
         self.optimizer = tf.keras.optimizers.Adam()

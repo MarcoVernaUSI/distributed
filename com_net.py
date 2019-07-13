@@ -129,11 +129,10 @@ class ComNet:
         self.len_dataset = t_data.shape[0]
         return t_data, targets
 
-    def train(self, data, targets, learning_rate = 0.002, buffer_epoch = 25):
-        ## Da implementare early stopping
+    def train(self, data, targets, learning_rate = 0.002, buffer_epoch = 1):
 
         self.learning_rate = learning_rate
-        best_model = 10
+        best_model = 0.1
 
         val_data = data[round(data.shape[0]*0.8):]
         t_data = data[:round(data.shape[0]*0.8)]
@@ -159,8 +158,8 @@ class ComNet:
                 batchY = t_targets[start_idx:end_idx,:]
 
                 ###############################
-                _total_loss, _train_step, _current_com, _outputs_series = self.sess.run(
-                    [self.total_loss, self.train_step, self.current_com, self.outputs_series],
+                _total_loss, _train_step = self.sess.run(
+                    [self.total_loss, self.train_step],
                     feed_dict={
                         self.X:batchX,
                         self.Y:batchY,
@@ -215,9 +214,4 @@ class ComNet:
         hh1= tf.nn.tanh(tf.matmul(h1, self.W_hh)+self.b_hh)
         hh2=  tf.nn.tanh(tf.matmul(h2, self.W_hh2)+self.b_hh2)
 
-    #   hhh1= tf.nn.tanh(tf.matmul(hh1, self.W_hhh)+self.b_hhh)
-    #   hhh2=  tf.nn.tanh(tf.matmul(hh2, self.W_hhh2)+self.b_hhh2)   
-
         return hh1, hh2     
-
-##########################################################################################
