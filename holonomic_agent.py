@@ -18,11 +18,20 @@ def mkrot(theta):   # non serve
 def atr(v,dt):
     return mktr(v*dt,0)  # note we translate along x
 
+#def check_dist(pose, pose_list, agent_width):
+#    for p in pose_list:
+#        dist = pose[0:2,2][0] - p[0:2,2][0]
+#        if abs(dist)<=agent_width*2:
+#            return False
+#    return True
+
+
 class Agent:
     def __init__(self, initial_pose, number):
         self.pose = initial_pose # will always store the current pose
         self.number = number
-        self.state = np.array([0,0]) #distanza destra e sinistra 
+        self.state = np.array([0,0]) #distanza destra e sinistra
+        self.width = 0.2
         
     def step(self, v, dt):
         self.pose = np.matmul(self.pose, atr(v, dt)) # this is where the magic happens
@@ -31,27 +40,43 @@ class Agent:
     def getxy(self):
         return self.pose[0:2,2] # extracts [x,y] from current pose
 
+    def setx(self, x):
+        self.pose[0,2]=x
+    def sety(self,y):
+        self.pose[1,2]=y 
+
+    def distance(self, agent):
+        if isinstance(agent, Agent):
+            return self.pose[0:2,2][0] - agent.getxy()[0]
+        else:
+            return self.pose[0:2,2][0] - agent
+
+    def check_collisions(self, agents_list, L):
+        if (self.distance(0) < self.width*2) and (self.distance(L)> self.width*2):
+            return False
+        for a in agents_list:
+            if abs(self.distance(a))<self.width*2:
+                return False
+        return True
+
     def gettheta(self): # sin(theta)      cos(theta)
         return np.arctan2(self.pose[1,0], self.pose[0,0])
 
-    def observe(self, agents_list, L, dt):
+    def observe(self, agents_list, L, idx):
         right = L
         left = L
 
-        for a in agents_list:
-            dist = self.pose[0:2,2][0] - a.getxy()[0]
-            if dist > 0:
+        for i,a in enumerate(agents_list):
+            dist = self.distance(a)
+            if dist > 0 and i!=idx:
                 if dist < left:
                     left = dist
-            if dist < 0:
+            if dist < 0 and i!=idx:
                 if abs(dist)<right:
                     right= abs(dist)
         if right == L:
-            right = L - self.pose[0:2,2][0]
+            right = -self.distance(L)
         if left == L:
-            left = self.pose[0:2,2][0]
+            left = self.distance(0)
 
-        d_left = (left - self.state[0])/dt
-        d_right = (right - self.state[1])/dt
-
-        return np.array([left,right]), np.array([d_left,d_right])
+        return np.array([left,right])
