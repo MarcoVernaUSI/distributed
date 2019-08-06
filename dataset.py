@@ -48,14 +48,14 @@ def prepare(trace: Trace,  steps: Optional[int] = None, padding: bool = False,
     return trace
 
 
-def create_dataset(simulator, n_simulation, parameter = None, steps=2):
+def create_dataset(simulator, n_simulation, parameter = None, steps=2, param2 = None):
     # prepare data for the net
     net_inputs =[]
     net_outputs = []
     net_errors = []
 
     for i in range(n_simulation):
-        states, target_vels, errors = simulator.run()
+        states, target_vels, errors, _ = simulator.run(parameter = param2)        
         net_inputs.append(states)
         net_outputs.append(target_vels)
         net_errors.append(errors)
@@ -69,14 +69,14 @@ def create_dataset(simulator, n_simulation, parameter = None, steps=2):
         traces=[]
         seq_length=trace_len//n_simulation
         for j in range(n_simulation):
-            trace = Trace( np.arange(seq_length), t_input[j*seq_length:j*seq_length+seq_length,:,0], np.zeros(seq_length), t_input[j*seq_length:j*seq_length+seq_length,:,3:5],t_output[j*seq_length:j*seq_length+seq_length],t_errors[j*seq_length:j*seq_length+seq_length])
+            trace = Trace( np.arange(seq_length), t_input[j*seq_length:j*seq_length+seq_length,:,0], np.zeros(seq_length), t_input[j*seq_length:j*seq_length+seq_length,:,3:],t_output[j*seq_length:j*seq_length+seq_length],t_errors[j*seq_length:j*seq_length+seq_length])
             traces.append(trace)
     else:
-        trace = Trace(np.zeros(trace_len), t_input[:,:,0], np.zeros(trace_len), t_input[:,:,3:5],t_output,t_errors)
+        trace = Trace(np.zeros(trace_len), t_input[:,:,0], np.zeros(trace_len), t_input[:,:,3:],t_output,t_errors)
     
-    if parameter == None:
+    if parameter == None:        
         dataset = TensorDataset(torch.FloatTensor(trace.state), torch.FloatTensor(trace.control))
-    elif parameter=='dis':
+    elif parameter=='dis':        
         ss = trace.sensing
         cs = trace.control
         dataset = TensorDataset(

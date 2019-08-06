@@ -5,12 +5,12 @@
 
 
 #### Problema che vanno fuori dal muro
-
+import sys
 from simulator1 import Simulator
 import numpy as np
 from holonomic_agent import Agent, mktr, mkrot, atr
 import random as rand
-from plotter import plot_simulation2, timeGraph, plot_simulationN, timeGraphN, error_plot
+from plotter import plot_simulation2, timeGraph, plot_simulationN, timeGraphN, error_plot, ComGraph
 from dataset import create_dataset
 from network import CentralizedNet, train_net, DistributedNet
 from com_network import ComNet, Sync
@@ -36,69 +36,85 @@ if __name__ == '__main__':
     L = 5 # Distance between walls
     N = 4 # Number of agents
     timesteps = 100 #timesteps
-    n_plots = 2
+    n_plots = 1
     n_test = 100
+    mas_vel = 3
+
+    #####
+    command_cnt=False if sys.argv[1]=='load' else True
+    command_dis=False if sys.argv[2]=='load' else True
+    command_com=False if sys.argv[3]=='load' else True
+    save_cmd = True if sys.argv[4]=='save' else False
     
     # Run Simulations
-    sim = Simulator(timesteps,N,L)
+    sim = Simulator(timesteps,N,L,mas_vel)
     training_set = create_dataset(sim, n_simulation)
     test_set = create_dataset(sim, n_simulation//5)
 
     # Training the Centralized Net
 
-
-#    net = CentralizedNet(N)
-#    training_loss, testing_loss = [], []
-#    train_net(epochs=500, net=net, train_dataset=training_set, test_dataset=test_set, batch_size=100, 
-#          training_loss=training_loss, testing_loss=testing_loss);
-#    torch.save(net, 'models/Centralized')
-
-    net = torch.load('models/Centralized')
+    if command_cnt:
+        net = CentralizedNet(N)
+        training_loss, testing_loss = [], []
+        train_net(epochs=500, net=net, train_dataset=training_set, test_dataset=test_set, batch_size=100, 
+              training_loss=training_loss, testing_loss=testing_loss);
+        if save_cmd:
+            torch.save(net, 'models/Centralized')
+    else:
+        net = torch.load('models/Centralized')
 
     # Training the Distributed Net
 
     d_training_set = create_dataset(sim, n_simulation, 'dis')
     d_test_set = create_dataset(sim, n_simulation//5, 'dis')
 
-#    d_net = DistributedNet()
-#    d_training_loss, d_testing_loss = [], []
-#    train_net(epochs=100, net=d_net, train_dataset=d_training_set, test_dataset=d_test_set, batch_size=100, 
-#          training_loss=d_training_loss, testing_loss=d_testing_loss);
-#    torch.save(d_net, 'models/Distributed')
-
-    d_net = torch.load('models/Distributed')
+    if command_dis:
+        d_net = DistributedNet(2)
+        d_training_loss, d_testing_loss = [], []
+        train_net(epochs=100, net=d_net, train_dataset=d_training_set, test_dataset=d_test_set, batch_size=100, 
+              training_loss=d_training_loss, testing_loss=d_testing_loss);
+        if save_cmd:
+            torch.save(d_net, 'models/Distributed')
+    else:
+        d_net = torch.load('models/Distributed')
 
     # Training the communication net
 
     c_training_set = create_dataset(sim, n_simulation, 'com', steps=2)
     c_test_set = create_dataset(sim, n_simulation//5, 'com', steps=2)
 
-    c_net = ComNet(N=N, sync=Sync.sequential)  # changed to sync
-    c_training_loss, c_testing_loss = [], []
+    if command_com:
+        c_net = ComNet(N=N, sync=Sync.sequential)  # changed to sync
+    #    c_net = ComNet(N=N, sync=Sync.sync)  # changed to sync
+        c_training_loss, c_testing_loss = [], []
+        train_net(epochs=500, net=c_net, train_dataset=c_training_set, test_dataset=c_test_set, batch_size=10, 
+            training_loss=c_training_loss, testing_loss=c_testing_loss);
 
-    train_net(epochs=500, net=c_net, train_dataset=c_training_set, test_dataset=c_test_set, batch_size=100, 
-          training_loss=c_training_loss, testing_loss=c_testing_loss);
-    torch.save(c_net, 'models/Communication')
-
-#    c_net = torch.load('models/Communication')
+        if save_cmd:
+            torch.save(c_net, 'models/Communication')
+    else:
+        c_net = torch.load('models/Communication')
 
     # Make a confront of the simulations
     for i in range(n_plots):
         init = create_init(N,L)
 
-        states, _, _ = sim.run(init=init)
-        statesC, _, _ = sim.run(init=init, control = net)
-        statesD, _, _ = sim.run(init=init, control = d_net)
-        statesCom, _, _ = sim.run(init=init, control = c_net)
-     
+        states, _, _, _ = sim.run(init=init)
+        statesC, _, _, _ = sim.run(init=init, control = net)
+        statesD, _, _, _ = sim.run(init=init, control = d_net)
+        statesCom, _, _, comms = sim.run(init=init, control = c_net)
+        
+
         plot_simulation2(states,statesC,L, 'Centralized')
-        timeGraph(states,statesC,L, 'Centralized')
+        timeGraph(states,statesC,L, 'Centralized',['Optimal', 'Learned'])
 
         plot_simulation2(states,statesD,L, 'Distributed')
-        timeGraph(states,statesD,L, 'Distributed')
+        timeGraph(states,statesD,L, 'Distributed',['Optimal', 'Learned'])
 
         plot_simulation2(states,statesCom,L, 'Communication')
-        timeGraph(states,statesCom,L, 'Communication')
+        timeGraph(states,statesCom,L, 'Communication',['Optimal', 'Learned'])
+   
+        ComGraph(states,statesCom,L, 'Communication', com=comms)
    
     # Testing
 
@@ -115,10 +131,10 @@ if __name__ == '__main__':
     error_comm=np.zeros((n_test,timesteps), dtype= np.float32)
     
     for idx, t_sim in enumerate(inits):
-        st, _, e = sim.run(t_sim)
-        sc,_, e_cent = sim.run(init=t_sim, control= net)
-        sd,_, e_dist = sim.run(init=t_sim, control= d_net)
-        sd,_, e_comm = sim.run(init=t_sim, control= c_net)
+        st, _, e, _ = sim.run(t_sim)
+        sc,_, e_cent, _ = sim.run(init=t_sim, control= net)
+        sd,_, e_dist, _ = sim.run(init=t_sim, control= d_net)
+        scom,_, e_comm, _ = sim.run(init=t_sim, control= c_net)
 
         error_optimal[idx] = error_optimal[idx] + e
         error_cent[idx] = error_cent[idx] + e_cent
@@ -150,6 +166,6 @@ if __name__ == '__main__':
     error_comm=np.mean(error_comm, axis=0)
     comm=np.stack((error_comm, max_comm, min_comm),axis=1)
 
-    error_plot([optimal,cent,dist, comm])    
+    error_plot([optimal,cent,dist, comm], ['Optimal','Centralized','Distributed','Communication'])    
 
     print('terminated')

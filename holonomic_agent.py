@@ -30,11 +30,14 @@ class Agent:
     def __init__(self, initial_pose, number):
         self.pose = initial_pose # will always store the current pose
         self.number = number
-        self.state = np.array([0,0]) #distanza destra e sinistra
-        self.width = 0.2
+        self.state = np.zeros(2) #distanza destra e sinistra (if 2) # velocità dei vicini se 4
+        self.vels = np.zeros(2)
+        self.width = 0.01
+        self.velocity = 0.0
         
     def step(self, v, dt):
         self.pose = np.matmul(self.pose, atr(v, dt)) # this is where the magic happens
+        self.velocity = v
         return self.pose
 
     def getxy(self):
@@ -66,17 +69,22 @@ class Agent:
         right = L
         left = L
 
+        vel_right = 0.0
+        vel_left = 0.0
+
         for i,a in enumerate(agents_list):
             dist = self.distance(a)
             if dist > 0 and i!=idx:
                 if dist < left:
                     left = dist
+                    vel_left = a.velocity
             if dist < 0 and i!=idx:
                 if abs(dist)<right:
                     right= abs(dist)
+                    vel_right=a.velocity
         if right == L:
             right = -self.distance(L)
         if left == L:
             left = self.distance(0)
-
-        return np.array([left,right])
+        
+        return np.array([left,right]), np.array([vel_left,vel_right])

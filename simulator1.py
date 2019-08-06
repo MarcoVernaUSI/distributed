@@ -36,17 +36,17 @@ class Run:
         self.dt = dt
         self.L = L
 
-    def __call__(self, state_c, agents_list, goal_list,  mas_vel,epsilon: float = 0.01, T: float = np.inf
+    def __call__(self, state_c, agents_list, goal_list,  mas_vel, state_size,epsilon: float = 0.01, T: float = np.inf
                  ) -> Trace:
         t = 0.0
         dt = 0.1
         steps: List[Trace] = []
         L = self.L
         e = 10
-#        while (e > epsilon and t < T) or t == 0:
+ #       while (e > epsilon and t < T) or t == 0:
         while (t < T) or t == 0:
             state = state_c[:,0].tolist()      
-            sensing = state_c[:,3:5].tolist()      
+            sensing = state_c[:,3:].tolist()      
             control, *communication = self.controller(state, sensing)
             if communication:
                 communication = communication[0]
@@ -63,26 +63,27 @@ class Run:
                 #check collisions
                 if not agents_list[i].check_collisions(agents_list[:i]+agents_list[i+1:],L):
                     agents_list[i].setx(state[i])
+                    agents_list[i].velocity= 0.0
                     control[i]=0.0
                     
             for i in range( 0, len(agents_list)):
-                agents_list[i].state= agents_list[i].observe(agents_list,L, i)
+                agents_list[i].state, agents_list[i].vels= agents_list[i].observe(agents_list,L, i)
 
             steps.append(Trace(t, state, communication, sensing, control, e))  
-            state_c = save_state(agents_list,5)
+            state_c = save_state(agents_list,state_size)
             t += 1
         return Trace(*[np.array(x) for x in zip(*steps)]) 
 
 
 class Simulator:
-    def __init__(self,timesteps,N,L):
+    def __init__(self,timesteps,N,L, mas_vel):
         self.timesteps = timesteps
         self.N = N
         self.L = L
-        self.mas_vel = 1
+        self.mas_vel = mas_vel
         self.dt =0.1
 
-    def run(self, init= None, control=None):
+    def run(self, init= None, control=None, parameter = None):
         n_agents = self.N
         L = self.L
         timesteps = self.timesteps
@@ -104,7 +105,7 @@ class Simulator:
 
         # initialize agents and simulation state
         for i in range(n_agents): 
-            agents_list[i].state = agents_list[i].observe(agents_list,L,i)
+            agents_list[i].state, agents_list[i].vels = agents_list[i].observe(agents_list,L,i)
 
         # Initialize targets
         goal_list = [None]*n_agents
@@ -114,23 +115,26 @@ class Simulator:
         
 
         # Parameters
-        state_size = len(agents_list[i].state)+3 # x, y, theta + stato
+        if parameter == 'add_vel':
+            state_size = len(agents_list[i].state)+len(agents_list[i].vels)+3
+        else:
+            state_size = len(agents_list[i].state)+3 # x, y, theta + stato
         states = np.zeros((timesteps,n_agents,state_size)) 
         target_vels = np.zeros((timesteps, n_agents))
         errors = np.zeros((timesteps,), dtype=np.float32)
-
-
+       
         #save initial state
         states[0]= save_state(agents_list, state_size)
         #state_error = states[0,:,0]    
-        #errors[0]= np.mean(abs(state_error-np.array(goal_list)))
+        #errors[0]= np.mean(abs(state_error-np.array(goal_list)))        
    
         # initialize controller
         if control is None:
             controller = PID(-5,0,0) #(-5, 0, 0)
+            comms = None
             for t in range (0, timesteps):
                 for i in range( 0, len(agents_list)):
-                    agents_list[i].state= agents_list[i].observe(agents_list,L, i)
+                    agents_list[i].state,  agents_list[i].vels= agents_list[i].observe(agents_list,L, i)
                     error = agents_list[i].getxy()[0]-goal_list[i]
                     v = controller.step(error, dt)
                     v = np.clip(v, -self.mas_vel, +self.mas_vel)
@@ -160,15 +164,16 @@ class Simulator:
         else:
             net_controller = control.controller()
             net_run = Run(L, controller=net_controller, dt=0.1)
-            trace = net_run( states[0], agents_list,goal_list,self.mas_vel,epsilon=0.01, T=timesteps)
+            trace = net_run( states[0], agents_list,goal_list,self.mas_vel,state_size,epsilon=0.01, T=timesteps)
             
             states[:trace.state.shape[0],:,0]=trace.state
-            states[:trace.sensing.shape[0],:,3:5]=trace.sensing
+            states[:trace.sensing.shape[0],:,3:]=trace.sensing
             target_vels[:trace.control.shape[0]]=trace.control
             errors[:trace.error.shape[0]]=trace.error
+            comms= trace.communication
 
 #################################################################
-        return states, target_vels, errors
+        return states, target_vels, errors, comms
 
     def initialize_agent(self, agent_list):
         while True:
@@ -184,8 +189,8 @@ def save_state(agents_list, state_size):
         state[i,0]= agents_list[i].getxy()[0]
         state[i,1]= agents_list[i].getxy()[1]
         state[i,2]= agents_list[i].gettheta()
-        for j in range(state_size-3):
-            state[i,3+j]= agents_list[i].state[j]
+        for j in range(state_size-3):            
+            state[i,3+j]= np.concatenate((agents_list[i].state,agents_list[i].vels))[j]
     return state
 
   

@@ -6,6 +6,8 @@ from matplotlib import pyplot, transforms
 from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from matplotlib.collections import LineCollection
+from matplotlib.colors import ListedColormap, BoundaryNorm
 import numpy as np
 
 def plot_simulation(data, L, name):
@@ -144,7 +146,7 @@ def plot_simulationN(data_all, L, name):
     plt.show()
 
 
-def timeGraph(data1,data2, L,name):
+def timeGraphOld(data1,data2, L,name, com = None):
 
     wall1=np.zeros((data1.shape[0],1))
     wall2=np.zeros((data1.shape[0],1))+L
@@ -175,7 +177,93 @@ def timeGraph(data1,data2, L,name):
 
     plt.show()  
 
+def timeGraph(data1,data2, L,name, labels):
 
+    x_data1 = data1[0:,:,0] 
+    y_data1 = data1[0:,:,1]
+
+    x_data2 = data2[0:,:,0]
+    y_data2 = data2[0:,:,1]
+
+    wall1=np.concatenate((np.arange(len(x_data1[:,0])).reshape(-1,1),np.zeros((data1.shape[0],1))), axis=1)
+    wall2=np.concatenate((np.arange(len(x_data1[:,0])).reshape(-1,1),np.zeros((data1.shape[0],1))+L), axis=1)
+
+    fig = plt.figure()
+
+    plt.plot(wall1[:,1],wall1[:,0], color='black')
+    plt.plot(wall2[:,1],wall2[:,0], color='black')
+
+    for i in range(x_data2.shape[1]):
+        line = np.concatenate((np.arange(len(x_data1[:,0])).reshape(-1,1),x_data1[:,i].reshape(-1,1)), axis=1)
+        line2 = np.concatenate((np.arange(len(x_data2[:,0])).reshape(-1,1),x_data2[:,i].reshape(-1,1)), axis=1)
+        plt.plot(line[:,1],line[:,0], color='blue')
+        plt.plot(line2[:,1],line[:,0], color='red')
+ 
+    custom_lines = [Line2D([0], [0], color='blue', lw=4),Line2D([0], [0], color='red', lw=4)]
+    plt.legend(custom_lines, labels,loc=4)
+
+    plt.xlabel('x position')
+    plt.ylabel('timesteps')
+    plt.title(name)
+
+    plt.show()  
+
+
+def ComGraph(data1,data2, L,name, com):
+    x_data1 = data1[0:,:,0] 
+    y_data1 = data1[0:,:,1]
+
+    x_data2 = data2[0:,:,0]
+    y_data2 = data2[0:,:,1]
+
+    wall1=np.concatenate((np.arange(len(x_data1[:,0])).reshape(-1,1),np.zeros((data1.shape[0],1))), axis=1)
+    wall2=np.concatenate((np.arange(len(x_data1[:,0])).reshape(-1,1),np.zeros((data1.shape[0],1))+L), axis=1)
+
+    fig, axs = plt.subplots(1, 1, sharex=True, sharey=True)
+
+    plt.plot(wall1[:,1],wall1[:,0], color='black')
+    plt.plot(wall2[:,1],wall2[:,0], color='black')
+
+
+    # Optimal lines
+    #opt_lines=[]
+    for i in range(x_data2.shape[1]):
+       line = np.concatenate((np.arange(len(x_data1[:,0])).reshape(-1,1),x_data1[:,i].reshape(-1,1)), axis=1)
+    #   plt.plot(line[:,1],line[:,0], color='blue')
+    
+
+
+    # Create a continuous norm to map from data points to colors
+    norm = plt.Normalize(-L, L)
+
+    #lines=[]
+
+    for i in range(x_data2.shape[1]):
+        points = np.array([x_data2[:,i], np.arange(len(x_data2[:,i]))]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+
+        dydx = com[:,i]
+
+        lc = LineCollection(segments, cmap='viridis', norm=norm)
+    #    lc = LineCollection(segments, cmap='inferno', norm=norm)
+    
+        # Set the values used for colormapping
+        lc.set_array(dydx)
+        lc.set_linewidth(2)
+        line = axs.add_collection(lc)
+    #    lines.append(line)
+
+    fig.colorbar(line, ax=axs)
+
+    axs.set_ylim(np.arange(len(x_data2[:,0])).min(), np.arange(len(x_data2[:,0])).max())
+    axs.set_xlim(-0.2, L+0.2)
+ 
+    plt.xlabel('x position')
+    plt.ylabel('timesteps')
+    plt.title(name)
+
+
+    plt.show()  
 
 def timeGraphN(data_all, L, name):
 
@@ -231,25 +319,26 @@ def update_plot(i, x_data1,y_data1, x_data2,y_data2, scat1, scat2):
     return scat1, scat2
         
 
-def error_plot(errors):
+def error_plot(errors, names):
+
+#    rounder = lambda x: float("{0:.2f}".format(x))
+#    vfunc = np.vectorize(rounder)
+#    errors=vfunc(errors)
+
+    colors = ['blue','yellow','green','red','purple']
+
 
     timesteps = np.linspace(0, len(errors[0]), num=len((errors[0])-1))
 
     plt.grid(True, which='both')
 
     # Linear X axis, Logarithmic Y axis
-    plt.plot(timesteps, errors[0][:,0] , label='Optimal')
-    plt.plot(timesteps, errors[1][:,0] , label='Centralized')
-    plt.plot(timesteps, errors[2][:,0] , label='Distributed')
-    plt.plot(timesteps, errors[3][:,0] , label='Communication')
+    for i in range(len(errors)):
+        plt.plot(timesteps, errors[i][:,0] , label=names[i])
     plt.legend(loc=2)
 
-
-    plt.fill_between(x =timesteps, y1=errors[0][:,1],y2=errors[0][:,2], facecolor='blue',color='blue', alpha=0.2)
-    plt.fill_between(x =timesteps, y1=errors[1][:,1],y2=errors[1][:,2], facecolor='yellow',color='yellow', alpha=0.2)
-    plt.fill_between(x =timesteps, y1=errors[2][:,1],y2=errors[2][:,2], facecolor='green',color='green', alpha=0.2)
-    plt.fill_between(x =timesteps, y1=errors[3][:,1],y2=errors[3][:,2], facecolor='red',color='red', alpha=0.2)
-
+    for i in range(len(errors)):
+        plt.fill_between(x =timesteps, y1=errors[i][:,1],y2=errors[i][:,2], facecolor=colors[i],color=colors[i], alpha=0.2)
 
     plt.title('Error for every net')
     plt.xlabel('Timestep')

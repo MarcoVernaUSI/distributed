@@ -25,14 +25,16 @@ def train_net(epochs: int,
               test_dataset: data.TensorDataset,
               net: torch.nn.Module,
               batch_size: int = 100,
-              learning_rate: float = 0.1,
+              learning_rate: float = 0.01,
               momentum: float = 0,
               training_loss: Optional[List[float]] = None,
               testing_loss: Optional[List[float]] = None,
               ) -> Tuple[List[float], List[float]]:    
     dl = data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)    
     tdl = data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-    optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate, momentum=momentum)
+   # optimizer = torch.optim.SGD(net.parameters(), lr=learning_rate, momentum=momentum)
+    optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
+   
     optimizer.zero_grad()
     criterion = torch.nn.MSELoss()
     if training_loss is None:
@@ -59,8 +61,10 @@ class CentralizedNet(torch.nn.Module):
 
     def __init__(self, N: int):
         super(CentralizedNet, self).__init__()
-        self.l1 = torch.nn.Linear(N, 10)
-        self.l2 = torch.nn.Linear(10, N)
+
+        # Per N 10
+        self.l1 = torch.nn.Linear(N, 128)        # prima di 64 era 10
+        self.l2 = torch.nn.Linear(128, N)
 
     def forward(self, ds):
         ys = F.torch.tanh(self.l1(ds))
@@ -75,9 +79,9 @@ class CentralizedNet(torch.nn.Module):
 
 class DistributedNet(torch.nn.Module):
 
-    def __init__(self):
+    def __init__(self, input_size):
         super(DistributedNet, self).__init__()
-        self.l1 = torch.nn.Linear(2, 10)
+        self.l1 = torch.nn.Linear(input_size, 10)
         self.l2 = torch.nn.Linear(10, 1)
 
     def forward(self, xs):
