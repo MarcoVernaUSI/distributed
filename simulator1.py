@@ -76,12 +76,14 @@ class Run:
 
 
 class Simulator:
-    def __init__(self,timesteps,N,L, mas_vel):
+    def __init__(self,timesteps,N,L, mas_vel, min_range = 0.0, max_range = 9999999.0):
         self.timesteps = timesteps
         self.N = N
         self.L = L
         self.mas_vel = mas_vel
         self.dt =0.1
+        self.min_range = min_range
+        self.max_range = max_range
 
     def run(self, init= None, control=None, parameter = None):
         n_agents = self.N
@@ -98,7 +100,7 @@ class Simulator:
                 self.initialize_agent(agents_list)
         else:
             for i in range(n_agents):
-                agents_list.append(Agent(init[i],i))
+                agents_list.append(Agent(init[i],i, self.min_range, self.max_range))
 
         # li ordino in base alla posizione
         agents_list.sort(key=lambda x: x.getxy()[0], reverse=False)
@@ -177,7 +179,7 @@ class Simulator:
 
     def initialize_agent(self, agent_list):
         while True:
-            new_agent=Agent(np.matmul(np.eye(3), mktr(rand.random()*self.L,0)),len(agent_list))
+            new_agent=Agent(np.matmul(np.eye(3), mktr(rand.random()*self.L,0)),len(agent_list), self.min_range, self.max_range)
             if new_agent.check_collisions(agent_list, self.L):
                 agent_list.append(new_agent)
                 break

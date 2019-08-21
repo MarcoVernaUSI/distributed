@@ -16,12 +16,12 @@ from network import CentralizedNet, train_net, DistributedNet
 from com_network import ComNet, Sync
 import torch
 
-def create_init(N,L):
+def create_init(N,L, min_range = 0.0, max_range = 9999999.0):
         init = []
         tmp_agent_list = []
         for j in range(N):
             while True:
-                new_agent=Agent(np.matmul(np.eye(3), mktr(rand.random()*L,0)),len(tmp_agent_list))
+                new_agent=Agent(np.matmul(np.eye(3), mktr(rand.random()*L,0)),len(tmp_agent_list), min_range, max_range)
                 if new_agent.check_collisions(tmp_agent_list, L):
                     tmp_agent_list.append(new_agent)
                     init.append(new_agent.pose)
@@ -43,7 +43,7 @@ if __name__ == '__main__':
     #mas_vel = 3
 
     #### Real robot parameters
-    L = 1 # Distance between walls
+    L = 0.40 # Distance between walls
     N = 2 # Number of agents
     mas_vel = 0.14 #m/s
 
@@ -174,5 +174,149 @@ if __name__ == '__main__':
     comm=np.stack((error_comm, max_comm, min_comm),axis=1)
 
     error_plot([optimal,cent,dist, comm], ['Optimal','Centralized','Distributed','Communication'])    
+
+
+    print('Real Sensing:')
+    #### Real sensing
+
+    # Train again
+    
+    # Run Simulations
+    sim = Simulator(timesteps,N,L,mas_vel, 0.0215, 0.14)
+    training_set = create_dataset(sim, n_simulation)
+    test_set = create_dataset(sim, n_simulation//5)
+
+    # Training the Centralized Net
+
+    if command_cnt:
+        netr = CentralizedNet(N)
+        training_loss, testing_loss = [], []
+        train_net(epochs=500, net=netr, train_dataset=training_set, test_dataset=test_set, batch_size=100, 
+            training_loss=training_loss, testing_loss=testing_loss);
+        if save_cmd:
+            torch.save(netr, 'models/Centralized_range')
+    else:
+        netr = torch.load('models/Centralized_range')
+
+    # Training the Distributed Net
+
+    d_training_set = create_dataset(sim, n_simulation, 'dis')
+    d_test_set = create_dataset(sim, n_simulation//5, 'dis')
+
+    if command_dis:
+        d_netr = DistributedNet(2)
+        d_training_loss, d_testing_loss = [], []
+        train_net(epochs=100, net=d_netr, train_dataset=d_training_set, test_dataset=d_test_set, batch_size=100, 
+            training_loss=d_training_loss, testing_loss=d_testing_loss);
+        if save_cmd:
+            torch.save(d_netr, 'models/Distributed_range')
+    else:
+        d_netr = torch.load('models/Distributed_range')
+
+    # Training the communication net
+
+    c_training_set = create_dataset(sim, n_simulation, 'com', steps=2)
+    c_test_set = create_dataset(sim, n_simulation//5, 'com', steps=2)
+
+    if command_com:
+        c_netr = ComNet(N=N, sync=Sync.sequential)  # changed to sync
+    #    c_net = ComNet(N=N, sync=Sync.sync)  # changed to sync
+        c_training_loss, c_testing_loss = [], []
+        train_net(epochs=500, net=c_netr, train_dataset=c_training_set, test_dataset=c_test_set, batch_size=10, 
+            training_loss=c_training_loss, testing_loss=c_testing_loss);
+
+        if save_cmd:
+            torch.save(c_netr, 'models/Communication_range')
+    else:
+        c_netr = torch.load('models/Communication_range')
+
+    # Make a confront of the simulations
+    for i in range(n_plots):
+        init = create_init(N,L,0.0215, 0.14)
+
+        statesr, _, _, _ = sim.run(init=init)
+        statesCr, _, _, _ = sim.run(init=init, control = netr)
+        statesDr, _, _, _ = sim.run(init=init, control = d_netr)
+        statesComr, _, _, commsr = sim.run(init=init, control = c_netr)
+        
+
+        plot_simulation2(statesr,statesCr,L, 'Centralized')
+        timeGraph(statesr,statesCr,L, 'Centralized',['Optimal', 'Learned'])
+
+        plot_simulation2(statesr,statesDr,L, 'Distributed')
+        timeGraph(statesr,statesDr,L, 'Distributed',['Optimal', 'Learned'])
+
+        plot_simulation2(statesr,statesComr,L, 'Communication')
+        timeGraph(statesr,statesComr,L, 'Communication',['Optimal', 'Learned'])
+   
+        ComGraph(statesr,statesComr,L, 'Communication', com=commsr)
+   
+    # Testing
+
+    # create test set
+    inits=[]
+    for i in range(n_test):
+        init = create_init(N,L,0.0215, 0.14)
+        inits.append(init)
+
+    errors = np.zeros((timesteps,), dtype= np.float32)
+    error_optimal=np.zeros((n_test,timesteps), dtype= np.float32)
+    error_cent=np.zeros((n_test,timesteps), dtype= np.float32)
+    error_dist=np.zeros((n_test,timesteps), dtype= np.float32)
+    error_comm=np.zeros((n_test,timesteps), dtype= np.float32)
+    
+    for idx, t_sim in enumerate(inits):
+        st, _, e, _ = sim.run(t_sim)
+        sc,_, e_cent, _ = sim.run(init=t_sim, control= netr)
+        sd,_, e_dist, _ = sim.run(init=t_sim, control= d_netr)
+        scom,_, e_comm, _ = sim.run(init=t_sim, control= c_netr)
+
+        error_optimal[idx] = error_optimal[idx] + e
+        error_cent[idx] = error_cent[idx] + e_cent
+        error_dist[idx] = error_dist[idx] + e_dist
+        error_comm[idx] = error_comm[idx] + e_comm
+
+        if error_cent[idx][timesteps-1]>=1:
+            plot_simulation2(st,sc,L, 'error cent')
+            timeGraph(st,sc,L, 'error cent')
+
+    max_optimal=np.quantile(error_optimal,0.95 ,axis=0)
+    min_optimal=np.quantile(error_optimal,0.05 ,axis=0)
+    error_optimal=np.mean(error_optimal, axis=0)
+    optimal=np.stack((error_optimal, max_optimal, min_optimal),axis=1)
+
+    max_cent=np.quantile(error_cent,0.95 ,axis=0)
+    min_cent=np.quantile(error_cent,0.05 ,axis=0)
+    error_cent=np.mean(error_cent, axis=0)
+    cent=np.stack((error_cent, max_cent, min_cent),axis=1)
+
+    max_dist=np.quantile(error_dist,0.95 ,axis=0)
+    min_dist=np.quantile(error_dist,0.05 ,axis=0)
+    error_dist=np.mean(error_dist, axis=0)
+    dist=np.stack((error_dist, max_dist, min_dist),axis=1)
+
+
+    max_comm=np.quantile(error_comm,0.95 ,axis=0)
+    min_comm=np.quantile(error_comm,0.05 ,axis=0)
+    error_comm=np.mean(error_comm, axis=0)
+    comm=np.stack((error_comm, max_comm, min_comm),axis=1)
+
+    error_plot([optimal,cent,dist, comm], ['Optimal','Centralized','Distributed','Communication'])    
+
+
+
+    # COnfronto range limitato e non
+
+
+    timeGraph(statesC,statesCr,L, 'Centralized',['Unlimited range', 'Real Sensing'])
+
+    timeGraph(statesD,statesD,L, 'Distributed',['Unlimited range', 'Real Sensing'])
+
+    timeGraph(statesCom,statesCom,L, 'Communication',['Unlimited range', 'Real Sensing'])
+   
+    
+
+
+
 
     print('terminated')
