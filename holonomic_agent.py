@@ -87,7 +87,14 @@ class Agent:
                     vel_right=a.velocity
         if right == L:
             right = -self.distance(L)
+            right= right - self.width
+        else:
+            right=right-(2*self.width)
+
         if left == L:
             left = self.distance(0)
+            left = left - self.width
+        else:
+            left=left-(2*self.width)
         
         return np.array([np.clip(left, self.min_range,self.max_range),np.clip(right, self.min_range,self.max_range)]), np.array([vel_left,vel_right])
