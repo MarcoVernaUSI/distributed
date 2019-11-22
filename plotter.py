@@ -24,7 +24,6 @@ def plot_simulation(data, L, name):
     fig = plt.figure()
     
 
-    #data = np.random.rand(numframes, 2,5)
     l, = plt.plot([], [], 'r-')
     plt.xlim(-0.5, L+0.5)
     plt.ylim(-1, 1)
@@ -38,11 +37,7 @@ def plot_simulation(data, L, name):
     plt.plot(0*wall,wall);
     plt.plot(L+0*wall, wall);
 
-
-
     scat = plt.scatter(x, y, s=100)
-#   points = plt.plot([1,2,3,4,5], [0,0,0,0,0], 'ro')
-
 
     for i in range(numframes):
         ani = animation.FuncAnimation(fig, update_plot ,frames = numframes ,fargs=(x_data,y_data, scat))
@@ -76,7 +71,6 @@ def plot_simulation2(data1,data2, L,name):
     fig = plt.figure()
     
 
-    #data = np.random.rand(numframes, 2,5)
     l, = plt.plot([], [], 'r-')
     plt.xlim(-0.5, L+0.5)
     plt.ylim(-1, 1)
@@ -92,22 +86,66 @@ def plot_simulation2(data1,data2, L,name):
 
 
 
-    scat1 = plt.scatter(x1, y1, s=100, c='blue')
-    scat1_right = plt.scatter(x1+0.06, y1, s=100, c='blue',marker="<")
-    scat1_left = plt.scatter(x1-0.06, y1, s=100, c='blue',marker=">")
+    scat1 = plt.scatter(x1, y1, s=80, c='blue')
+    scat1_right = plt.scatter(x1+0.06, y1, s=30, c='blue',marker="<")
+    scat1_left = plt.scatter(x1-0.06, y1, s=30, c='blue',marker=">")
         
 
-    scat2 = plt.scatter(x2, y2, s=100, c='red')
-    scat2_right = plt.scatter(x2+0.06, y1, s=100, c='red',marker="<")
-    scat2_left = plt.scatter(x2-0.06, y1, s=100, c='red', marker=">")
+    scat2 = plt.scatter(x2, y2, s=80, c='red')
+    scat2_right = plt.scatter(x2+0.06, y1, s=30, c='red',marker="<")
+    scat2_left = plt.scatter(x2-0.06, y1, s=30, c='red', marker=">")
+ 
+    for i in range(numframes):
+        ani = animation.FuncAnimation(fig, update_plot ,frames = numframes ,fargs=(x_data1,y_data1,x_data1_right,y_data1,x_data1_left,y_data1, x_data2,y_data2,x_data2_right,y_data2,x_data2_left,y_data2 ,scat1,scat1_right,scat1_left, scat2,scat2_right,scat2_left))
+
+    ani.save('plots/animation.gif', writer='imagemagick', fps=10)
+    plt.show()
+
+def plot_simulationL(data1,data2, L,name):
+
+
+    numframes = len(data1)-1
+    numpoints = len(data1[0])
+    x1 = data1[0,:,0]
+    y1 = data1[0,:,1]
+
+    x2 = data2[0]
+
+    x_data1 = data1[1:,:,0] 
+    y_data1 = data1[1:,:,1]
+    x_data1_right = x_data1 + 0.06
+    x_data1_left = x_data1 - 0.06
+
+    x_data2 = data2[1:] 
+
+    fig = plt.figure()
     
 
-#   points = plt.plot([1,2,3,4,5], [0,0,0,0,0], 'ro')
+    l, = plt.plot([], [], 'r-')
+    plt.xlim(-0.5, L+0.5)
+    plt.ylim(-1, 1)
+    plt.xlabel('x')
+    plt.title(name)
+
+
+    line = np.linspace(0, L)
+    wall = np.linspace(-3, 3)
+    plt.plot(line, 0*line);
+    plt.plot(0*wall,wall, color='black');
+    plt.plot(L+0*wall, wall, color='black');
 
 
 
+    scat1 = plt.scatter(x1, y1, s=80, c='blue')
+    scat1_right = plt.scatter(x1+0.06, y1, s=30, c='blue',marker="<")
+    scat1_left = plt.scatter(x1-0.06, y1, s=30, c='blue',marker=">")
+        
+
+    scat2 = plt.scatter(x2, y2, s=80, c='red')
+    scat2_right = plt.scatter(x2+0.06, y1, s=30, c='red',marker="<")
+    scat2_left = plt.scatter(x2-0.06, y1, s=30, c='red', marker=">")
+ 
     for i in range(numframes):
-  #      ani = animation.FuncAnimation(fig, update_plot ,frames = numframes ,fargs=(x_data1,y_data1,x_data2,y_data2, scat1, scat2))
         ani = animation.FuncAnimation(fig, update_plot ,frames = numframes ,fargs=(x_data1,y_data1,x_data1_right,y_data1,x_data1_left,y_data1, x_data2,y_data2,x_data2_right,y_data2,x_data2_left,y_data2 ,scat1,scat1_right,scat1_left, scat2,scat2_right,scat2_left))
 
     ani.save('plots/animation.gif', writer='imagemagick', fps=10)
@@ -224,6 +262,61 @@ def timeGraph(data1,data2, L,name, labels):
 
     plt.show()  
 
+def timeGraphL(data1,data2, L,name):
+
+    x_data1 = data1[0:,:,0] 
+    y_data1 = data1[0:,:,1]
+
+    colors = np.zeros((data2.shape[0],data2.shape[1]))
+
+    for i in range(colors.shape[0]):
+        for j in range(colors.shape[1]):
+            if data2[i,j]<0.5:
+                colors[i,j] = -0.75
+            else:
+                colors[i,j]= 0.25
+
+
+
+    wall1=np.concatenate((np.arange(len(x_data1[:,0])).reshape(-1,1),np.zeros((data1.shape[0],1))), axis=1)
+    wall2=np.concatenate((np.arange(len(x_data1[:,0])).reshape(-1,1),np.zeros((data1.shape[0],1))+L), axis=1)
+
+    fig, axs = plt.subplots(1, 1, sharex=True, sharey=True)
+
+    plt.plot(wall1[:,1],wall1[:,0], color='black')
+    plt.plot(wall2[:,1],wall2[:,0], color='black')
+
+    norm = plt.Normalize(-L, L)
+
+    for i in range(x_data1.shape[1]):
+        points = np.array([x_data1[:,i], np.arange(len(x_data1[:,i]))]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+
+        dydx = colors[:,i]
+
+
+
+        lc = LineCollection(segments, cmap='inferno', norm=norm)
+    
+        # Set the values used for colormapping
+        lc.set_array(dydx)
+        lc.set_linewidth(2)
+        line = axs.add_collection(lc)
+
+
+
+   # fig.colorbar(line, ax=axs)
+
+    axs.set_ylim(np.arange(len(x_data1[:,0])).min(), np.arange(len(x_data1[:,0])).max())
+    axs.set_xlim(-0.2, L+0.2)
+ 
+    plt.xlabel('x position')
+    plt.ylabel('timesteps')
+    plt.title(name)
+
+
+    plt.show()  
+
 
 def ComGraph(data1,data2, L,name, com):
     x_data1 = data1[0:,:,0] 
@@ -250,7 +343,11 @@ def ComGraph(data1,data2, L,name, com):
 
 
     # Create a continuous norm to map from data points to colors
-    norm = plt.Normalize(-L, L)
+#    norm = plt.Normalize(-L, L)
+    # solo per colori
+    norm = plt.Normalize(0,1)
+
+ 
 
     #lines=[]
 

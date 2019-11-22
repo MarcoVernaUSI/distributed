@@ -18,28 +18,20 @@ def mkrot(theta):   # non serve
 def atr(v,dt):
     return mktr(v*dt,0)  # note we translate along x
 
-#def check_dist(pose, pose_list, agent_width):
-#    for p in pose_list:
-#        dist = pose[0:2,2][0] - p[0:2,2][0]
-#        if abs(dist)<=agent_width*2:
-#            return False
-#    return True
-
-
 class Agent:
     def __init__(self, initial_pose, number, min_range = 0.0, max_range = 9999999.0):
         self.pose = initial_pose # will always store the current pose
         self.number = number
         self.state = np.zeros(2) #distanza destra e sinistra (if 2) # velocità dei vicini se 4
         self.vels = np.zeros(2)
-        #self.width = 0.01
-        self.width = 0.06
+        self.width = 0.06 #m
         self.velocity = 0.0
         self.min_range = min_range
         self.max_range = max_range
+        self.color = 0
         
     def step(self, v, dt):
-        self.pose = np.matmul(self.pose, atr(v, dt)) # this is where the magic happens
+        self.pose = np.matmul(self.pose, atr(v, dt))
         self.velocity = v
         return self.pose
 
@@ -91,6 +83,7 @@ class Agent:
         else:
             right=right-(2*self.width)
 
+        # adjust with width
         if left == L:
             left = self.distance(0)
             left = left - self.width
