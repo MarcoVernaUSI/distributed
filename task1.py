@@ -36,16 +36,16 @@ if __name__ == '__main__':
     # Parameters
     variable_range = False
     train = True
-    n_simulation = 5000#5000
+    n_simulation = 1000#5000
     timesteps = 100 #each timestp is 1/10 of second
     n_plots = 1 # number of plots visulaized
     n_test = 100 # number of example in the test set
     comm_size= 1
 
     #### Simulation parameters
-    L =0.78#0.96 # 1 # Distance between walls
+    L = 1   #0.78 #0.96 # 1 # Distance between walls
     N = 5 # Number of agents
-    mas_vel = 0.07#0.07  # capped at 0.14 m/s
+    mas_vel = 0.07 #0.07  # capped at 0.14 m/s
 
 
     # if variable_range is true
@@ -56,15 +56,14 @@ if __name__ == '__main__':
     ML = N*0.12 + max_distance_between_robots*(N+1)
 
 
-
     #####
     command_cnt=False if sys.argv[1]=='load' else True
     command_dis=False if sys.argv[2]=='load' else True
     command_com=False if sys.argv[3]=='load' else True
     save_cmd = True if sys.argv[4]=='save' else False
     
-    # Run Simulations
 
+    # Run Simulations
     if variable_range:
         sim = SimulatorR(timesteps,N,mL,ML,mas_vel)
     else:
@@ -78,12 +77,11 @@ if __name__ == '__main__':
     if command_cnt:
         net = CentralizedNet(N)
         training_loss, testing_loss = [], []
-        train_net(epochs=5, net=net, train_dataset=training_set, test_dataset=test_set, batch_size=100, learning_rate=0.0005,
+        train_net(epochs=300, net=net, train_dataset=training_set, test_dataset=test_set, batch_size=10, learning_rate=0.005, # 0.0005,
               training_loss=training_loss, testing_loss=testing_loss);
         if save_cmd:
             torch.save(net, 'models/Centralized')
     else:
-        u=1
         net = torch.load('models/Centralized')
 
 
@@ -98,12 +96,11 @@ if __name__ == '__main__':
         d_net = DistributedNet(2)
         d_training_loss, d_testing_loss = [], []
         # learning rate 0.001 oscilla tra 0.03 e 0.029
-        train_net(epochs=2, net=d_net, train_dataset=d_training_set, test_dataset=d_test_set, batch_size=100, learning_rate=0.001,
+        train_net(epochs=200, net=d_net, train_dataset=d_training_set, test_dataset=d_test_set, batch_size=100, learning_rate=0.001,
               training_loss=d_training_loss, testing_loss=d_testing_loss);
         if save_cmd:
             torch.save(d_net, 'models/Distributed')
     else:
-        u=1
         d_net = torch.load('models/Distributed')
 
 
@@ -214,6 +211,8 @@ if __name__ == '__main__':
     comm=np.stack((error_comm, max_comm, min_comm),axis=1)
 
     error_plot([optimal,cent,dist, comm], ['Optimal','Centralized','Distributed','Communication'])    
+
+
 
     print('terminated')
 

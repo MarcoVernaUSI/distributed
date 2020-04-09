@@ -8,7 +8,7 @@ from simulator1 import Simulator2, create_init
 import numpy as np
 from holonomic_agent import Agent, mktr, mkrot, atr
 import random as rand
-from plotter import plot_simulation2, timeGraph, plot_simulationN, timeGraphN, error_plot, ComGraph, timeGraphL
+from plotter import plot_simulation2, timeGraph, plot_simulationN, timeGraphN,ComGraphL, error_plot, ComGraph, timeGraphL, timeGraphL2
 from dataset import create_dataset
 from network import CentralizedNetL, train_net, DistributedNetL
 from com_network import ComNetL, Sync, ComNetLnoSensing
@@ -22,7 +22,7 @@ import torch
 # contare quanti step ci mette a stabilizzarsi con diversi numeri di robot.
 
 # coloro sotto come la comunicazione e sopra come control. trasformo tra 0 e 8 e coloro il numero di led corrispondente. 32- 0 valori (sopra)
-#  numero di step che ci mettono a stabilizzarsi
+# numero di step che ci mettono a stabilizzarsi
 # testare con 3 - 5 robot.   testare con 6, addestrare con 6 e aumentare il numero.
 # distanze uniformi e tolgo sensing.   # FATTO
 
@@ -59,15 +59,15 @@ if __name__ == '__main__':
     # Parameters
     train = True
     n_simulation = 1000 #5000
-    timesteps = 40 #each timestep is 1/10 of second
-    n_plots = 2 # number of plots visualized
+    timesteps =10 #each timestep is 1/10 of second
+    n_plots = 10 # number of plots visualized
     n_test = 100 # number of example in the test set
     comm_size= 1
     uniform_init = True
 
     #### Simulation parameters
-    L =4 # 1 # Distance between walls
-    N = 20 # 4 # Number of agents
+    L = 1 # 1 # Distance between walls
+    N = 4 # 4 # Number of agents
     mas_vel = 0.07#0.07  # capped at 0.14 m/s
 
     #####
@@ -123,8 +123,8 @@ if __name__ == '__main__':
 
     if command_com:
     #    c_net = ComNetL(N=N, sync=Sync.sequential)  # changed to sync
-    #    c_net = ComNetLnoSensing(N=N, sync=Sync.sequential)  # changed to sync
-        c_net = ComNetLnoSensing(N=N, sync=Sync.sync)  # changed to sync
+        c_net = ComNetLnoSensing(N=N, sync=Sync.sequential)  # changed to sync
+    #    c_net = ComNetLnoSensing(N=N, sync=Sync.sync)  # changed to sync
   
     #    c_net = ComNetLnoSensing(N=N, sync=Sync.sync)  # changed to sync
       
@@ -179,10 +179,11 @@ if __name__ == '__main__':
 #        plot_simulationL(statesCom,colorsCom, L_tmp, 'Communication')
    
 
-        timeGraphL(statesCom,colorsCom,L_tmp, 'Output')
+        timeGraphL2(statesCom,colorsCom,L_tmp, 'Output')
 
         ComGraph(states,statesCom,L_tmp, 'Communication', com=comms)
-      
+        
+        ComGraphL(states,statesCom,L_tmp, 'Communication', com=comms)
 
 
     print('Optimal\n',np.array(test_optimal))

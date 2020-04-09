@@ -94,10 +94,9 @@ class CentralizedNet(torch.nn.Module):
 
     def __init__(self, N: int):
         super(CentralizedNet, self).__init__()
-
         # Per N 10
-        self.l1 = torch.nn.Linear(N*2, 64)        # prima di 64 era 10
-        self.l2 = torch.nn.Linear(64, N)
+        self.l1 = torch.nn.Linear(N*2, 10)        # prima di 64 era 10
+        self.l2 = torch.nn.Linear(10, N)
 
     def forward(self, ds):
         ys = F.torch.tanh(self.l1(ds))

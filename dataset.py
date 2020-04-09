@@ -28,6 +28,7 @@ def tensors_from_trace(trace: Trace) -> Tuple[torch.FloatTensor, ...]:
 def prepare(trace: Trace,  steps: Optional[int] = None, padding: bool = False,
             default_dt: float = 0.1
             ) -> Trace:
+
     if steps is not None:
         if len(trace.time) > steps:
             s = slice(steps)
@@ -73,7 +74,7 @@ def create_dataset(simulator, n_simulation, parameter = None, steps=2, param2 = 
             ##### COMMM 
             #trace = Trace( np.arange(seq_length), t_input[j*seq_length:j*seq_length+seq_length,:,0], np.zeros(seq_length), t_input[j*seq_length:j*seq_length+seq_length,:,3:],t_output[j*seq_length:j*seq_length+seq_length],t_errors[j*seq_length:j*seq_length+seq_length])            
             trace = Trace( np.arange(seq_length), t_input[j*seq_length:j*seq_length+seq_length,:,0], np.zeros((seq_length, comm_size)), t_input[j*seq_length:j*seq_length+seq_length,:,3:],t_output[j*seq_length:j*seq_length+seq_length],t_errors[j*seq_length:j*seq_length+seq_length])            
-            traces.append(trace)
+            traces.append(trace)        
     else:
         trace = Trace(np.zeros(trace_len), t_input[:,:,0], np.zeros(trace_len), t_input[:,:,3:],t_output,t_errors)        
     if parameter == None:        
@@ -91,7 +92,6 @@ def create_dataset(simulator, n_simulation, parameter = None, steps=2, param2 = 
     elif parameter=="st":
         dataset = TensorDataset(torch.FloatTensor(trace.state), torch.FloatTensor(trace.control))
        
-
     return dataset
 
 

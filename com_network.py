@@ -150,7 +150,7 @@ class ComNet(nn.Module):
         for run in runs:
             comm = init_comm(self.N)
             controls = []
-            tmp = list(range(self.N))
+            tmp = list(range(self.N))    ## controllo che cavolo fa sto shuffle
             shuffle(tmp)
             self.tmp_indices = tmp
             for xs in run:
@@ -158,17 +158,23 @@ class ComNet(nn.Module):
             rs.append(torch.stack(controls))
         return torch.stack(rs)
 
-    def controller(self, sync: Sync = Sync.sync) -> Controller:
+#    def controller(self, sync: Sync = Sync.sync) -> Controller:
+    def controller(self) -> Controller:
+
         N = self.N
-        if sync == None:
-            sync = self.sync
+        
+        #if sync == None:
+        sync = self.sync
+     #   sync = Sync.sync
+        
+
         tmp = list(range(self.N))
         shuffle(tmp)
         self.tmp_indices = tmp
         comm = init_comm(N)
         print("initial comm = ", comm)
         def f(state: Sequence[State], sensing: Sequence[Sensing]
-              ) -> Tuple[Sequence[Control], Sequence[float]]:
+              ) -> Tuple[Sequence[Control], Sequence[float]]:            
             with torch.no_grad():
                 sensing = torch.FloatTensor(sensing)
                 control = self.step(sensing, comm, sync=sync).numpy()

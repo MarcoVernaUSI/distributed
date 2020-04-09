@@ -8,7 +8,7 @@ from simulator1 import SimulatorN, create_init
 import numpy as np
 from holonomic_agent import Agent, mktr, mkrot, atr
 import random as rand
-from plotter import plot_simulation2, timeGraph, plot_simulationN, timeGraphN, error_plot, ComGraph, timeGraphL
+from plotter import plot_simulation_task2 ,plot_simulation2, timeGraph, plot_simulationN, timeGraphN, error_plot, ComGraph, timeGraphL, timeGraphL2, ComGraphL
 from dataset import create_datasetN
 from network import CentralizedNetL, train_net, DistributedNetL
 from com_network import ComNetL, Sync, ComNetLnoSensingN
@@ -41,8 +41,8 @@ if __name__ == '__main__':
     # Parameters
     train = True
     n_simulation = 3000#5000
-    timesteps = 10 #each timestep is 1/10 of second
-    n_plots = 10 # number of plots visulaized
+    timesteps = 6 #each timestep is 1/10 of second
+    n_plots = 3 # number of plots visulaized
     n_test = 100 # number of example in the test set
     comm_size= 1
     uniform_init = True
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     #### Simulation parameters
     L =4 # 1 # Distance between walls
     Ns = [4, 6, 8] # 4 # Number of agents
-    sequence_length = max(Ns)
+    sequence_length = max(Ns)*2
     mas_vel = 0.07#0.07  # capped at 0.14 m/s
 
     #####
@@ -114,11 +114,14 @@ if __name__ == '__main__':
 #        timeGraph(states,statesD,L_tmp, 'Distributed',['Optimal', 'Learned'])
 
 #        plot_simulationL(statesCom,colorsCom, L_tmp, 'Communication')
-   
+        plot_simulation_task2(statesCom,colorsCom,L_tmp, 'Output')   
 
         timeGraphL(statesCom,colorsCom,L_tmp, 'Output')
+        timeGraphL2(statesCom,colorsCom,L_tmp, 'Output')
 
         ComGraph(states,statesCom,L_tmp, 'Communication', com=comms)
+
+        ComGraphL(states,statesCom,L_tmp, 'Communication', com=comms)
 
     #    ComGraph(states,statesCom,L_tmp, 'Communication', com=comms)
       

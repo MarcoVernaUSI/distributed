@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap, BoundaryNorm
+import matplotlib.cm as cm
 import numpy as np
 
 def plot_simulation(data, L, name):
@@ -100,6 +101,117 @@ def plot_simulation2(data1,data2, L,name):
 
     ani.save('plots/animation.gif', writer='imagemagick', fps=10)
     plt.show()
+
+def plot_simulation_task2(data1,data2, L,name):
+
+
+
+
+    numframes = len(data1)-1
+    numpoints = len(data1[0])
+    x1 = data1[0,:,0]
+    y1 = data1[0,:,1]
+
+    x_data1 = data1[1:,:,0] 
+    y_data1 = data1[1:,:,1]
+
+
+    fig = plt.figure()
+    
+
+    l, = plt.plot([], [], 'r-')
+    plt.xlim(-0.5, L+0.5)
+    plt.ylim(-1, 1)
+    plt.xlabel('x')
+    plt.title(name)
+
+
+    line = np.linspace(0, L)
+    wall = np.linspace(-3, 3)
+    plt.plot(line, 0*line);
+    plt.plot(0*wall,wall, color='black');
+    plt.plot(L+0*wall, wall, color='black');
+
+
+
+    c1=data2[0]
+    c_data = data2[1:]
+    #split
+    x1_blue=[]
+    x1_red=[]
+    for i in range(x1.shape[0]):
+        if c1[i]<0.5:
+            x1_blue.append(x1[i])
+        else:
+            x1_red.append(x1[i])
+
+    x_data1_blue=[]
+    x_data1_red=[]
+    for j in range(x_data1.shape[0]):
+        x_data1_blue_line=[]
+        x_data1_red_line=[]
+        for i in range(x_data1.shape[1]):
+            if c_data[j,i]<0.5:
+                x_data1_blue_line.append(x_data1[j,i])
+            else:
+                x_data1_red_line.append(x_data1[j,i])
+        x_data1_blue.append(np.array(x_data1_blue_line))
+        x_data1_red.append(np.array(x_data1_red_line))
+
+  
+
+
+    x_data1_right_blue = []
+    x_data1_left_blue = []
+    y_data1_blue = []
+    
+
+
+
+
+    for line_ in x_data1_blue:
+        x_data1_right_blue.append(line_ + 0.06)
+        x_data1_left_blue.append(line_ - 0.06)
+        y_data1_blue.append(np.zeros(line_.shape[0]))
+
+
+
+    x_data1_right_red = []
+    x_data1_left_red = []
+    y_data1_red = []
+
+    for line_ in x_data1_red:
+        x_data1_right_red.append(line_ + 0.06)
+        x_data1_left_red.append(line_ - 0.06)
+        y_data1_red.append(np.zeros(line_.shape[0]))
+
+
+
+
+
+
+    y1_blue = np.zeros(len(x1_blue))
+    y1_red = np.zeros(len(x1_red))
+
+
+
+    scat1 = plt.scatter(np.array(x1_blue), y1_blue, s=80, c='blue')
+    scat1_right = plt.scatter(np.array(x1_blue)+0.06, y1_blue, s=30, c='blue',marker="<")
+    scat1_left = plt.scatter(np.array(x1_blue)-0.06, y1_blue, s=30, c='blue',marker=">")
+    
+    scat2 = plt.scatter(np.array(x1_red), y1_red, s=80, c='red')
+    scat2_right = plt.scatter(np.array(x1_red)+0.06, y1_red, s=30, c='red',marker="<")
+    scat2_left = plt.scatter(np.array(x1_red)-0.06, y1_red, s=30, c='red',marker=">")  
+
+
+ 
+    for i in range(numframes):
+        ani = animation.FuncAnimation(fig, update_plot_task2 ,frames = numframes ,fargs=(x_data1_blue,x_data1_right_blue,x_data1_left_blue,y_data1_blue, x_data1_red, y_data1_red,x_data1_right_red,x_data1_left_red,scat1,scat1_right,scat1_left, scat2,scat2_right,scat2_left))
+
+    ani.save('plots/animation.gif', writer='imagemagick', fps=10)
+    plt.show()
+
+
 
 def plot_simulationL(data1,data2, L,name):
 
@@ -251,16 +363,83 @@ def timeGraph(data1,data2, L,name, labels):
         line = np.concatenate((np.arange(len(x_data1[:,0])).reshape(-1,1),x_data1[:,i].reshape(-1,1)), axis=1)
         line2 = np.concatenate((np.arange(len(x_data2[:,0])).reshape(-1,1),x_data2[:,i].reshape(-1,1)), axis=1)
         plt.plot(line[:,1],line[:,0], color='blue')
-        plt.plot(line2[:,1],line[:,0], color='red')
+      #  plt.plot(line2[:,1],line[:,0], color='red')
  
-    custom_lines = [Line2D([0], [0], color='blue', lw=4),Line2D([0], [0], color='red', lw=4)]
-    plt.legend(custom_lines, labels,loc=4)
+    #custom_lines = [Line2D([0], [0], color='blue', lw=4),Line2D([0], [0], color='red', lw=4)]
+    #plt.legend(custom_lines, labels,loc=4)
+
+    custom_lines = [Line2D([0], [0], color='blue', lw=4)]
+    plt.legend(custom_lines, labels[0],loc=4)
+
 
     plt.xlabel('x position')
     plt.ylabel('timesteps')
     plt.title(name)
 
     plt.show()  
+
+
+
+
+def timeGraphL2(data1,data2, L, name):
+
+    x_data1 = data1[0:,:,0] 
+    y_data1 = data1[0:,:,1]
+
+    colors = np.zeros((data2.shape[0],data2.shape[1]))
+
+    for i in range(colors.shape[0]):
+        for j in range(colors.shape[1]):
+            if data2[i,j]<0.5:
+                colors[i,j] = 0.25
+            else:
+                colors[i,j]= -0.75
+
+    colors = np.flip(colors, axis=0)
+
+
+
+    #yticks =np.arange(colors.shape[0])
+    yticks =np.arange(1,colors.shape[0]+1,colors.shape[0]//5)
+    xticks =np.arange(colors.shape[1]) 
+
+
+    fig, ax = plt.subplots()
+    im = ax.imshow(colors, cmap="RdYlBu")
+
+    # We want to show all ticks...
+    ax.set_xticks(xticks)
+    ax.set_yticks(yticks)
+    # ... and label them with the respective list entries
+    ax.set_xticklabels(xticks+1)
+    ax.set_yticklabels(np.flip(yticks))
+
+ 
+
+    # Loop over data dimensions and create text annotations.
+    #for i in range(len(timesteps)):
+        #for j in range(len(agents)):
+            #text = ax.text(j, i, colors[i, j],
+            #           ha="center", va="center", color="w")
+
+    # Turn spines off and create white grid.
+    for edge, spine in ax.spines.items():
+        spine.set_visible(False)
+
+    ax.set_xticks(np.arange(colors.shape[1]+1)-.5, minor=True)
+    ax.set_yticks(np.arange(colors.shape[0]+1)-.5, minor=True)
+    ax.grid(which="minor", color="w", linestyle='-', linewidth=3)
+    ax.tick_params(which="minor", bottom=False, left=False)
+
+
+    ax.set_title("Output")
+    fig.tight_layout()
+    plt.ylabel("timesteps")
+    plt.xlabel("Agent")
+    plt.show()
+
+
+
 
 def timeGraphL(data1,data2, L,name):
 
@@ -275,8 +454,6 @@ def timeGraphL(data1,data2, L,name):
                 colors[i,j] = -0.75
             else:
                 colors[i,j]= 0.25
-
-
 
     wall1=np.concatenate((np.arange(len(x_data1[:,0])).reshape(-1,1),np.zeros((data1.shape[0],1))), axis=1)
     wall2=np.concatenate((np.arange(len(x_data1[:,0])).reshape(-1,1),np.zeros((data1.shape[0],1))+L), axis=1)
@@ -304,7 +481,6 @@ def timeGraphL(data1,data2, L,name):
         line = axs.add_collection(lc)
 
 
-
    # fig.colorbar(line, ax=axs)
 
     axs.set_ylim(np.arange(len(x_data1[:,0])).min(), np.arange(len(x_data1[:,0])).max())
@@ -318,7 +494,7 @@ def timeGraphL(data1,data2, L,name):
     plt.show()  
 
 
-def ComGraph(data1,data2, L,name, com):
+def ComGraph(data1,data2, L,name, com):  #ComGraph
     x_data1 = data1[0:,:,0] 
     y_data1 = data1[0:,:,1]
 
@@ -373,10 +549,64 @@ def ComGraph(data1,data2, L,name, com):
  
     plt.xlabel('x position')
     plt.ylabel('timesteps')
+    plt.xlabel("Agent")
     plt.title(name)
 
 
-    plt.show()  
+    plt.show()
+
+def ComGraphL(data1,data2, L,name, com):  #ComGraphL
+
+    x_data1 = data1[0:,:,0] 
+    y_data1 = data1[0:,:,1]
+
+    x_data2 = data2[0:,:,0]
+    y_data2 = data2[0:,:,1]
+
+    com= np.flip(com,0)
+
+
+ 
+    #yticks =np.arange(colors.shape[0])
+    yticks =np.arange(0,com.shape[0],com.shape[0]//5)
+    xticks =np.arange(com.shape[1]) 
+
+    fig, ax = plt.subplots()
+    im = ax.imshow(com)
+
+    # We want to show all ticks...
+    ax.set_xticks(xticks)
+    ax.set_yticks(yticks)
+    # ... and label them with the respective list entries
+    ax.set_xticklabels(xticks+1)
+    ax.set_yticklabels(np.flip(yticks))
+
+
+    cbar = ax.figure.colorbar(im, ax=ax)
+  #  cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom")
+
+    # Loop over data dimensions and create text annotations.
+    #for i in range(len(timesteps)):
+        #for j in range(len(agents)):
+            #text = ax.text(j, i, colors[i, j],
+            #           ha="center", va="center", color="w")
+
+    # Turn spines off and create white grid.
+    for edge, spine in ax.spines.items():
+        spine.set_visible(False)
+
+    ax.set_xticks(np.arange(com.shape[1]+1)-.5, minor=True)
+    ax.set_yticks(np.arange(com.shape[0]+1)-.5, minor=True)
+    ax.grid(which="minor", color="w", linestyle='-', linewidth=3)
+    ax.tick_params(which="minor", bottom=False, left=False)
+
+
+    ax.set_title("Communication")
+    fig.tight_layout()
+    plt.ylabel("timesteps")
+    plt.xlabel("Agent")
+    plt.show()
+
 
 def timeGraphN(data_all, L, name):
 
@@ -450,6 +680,27 @@ def update_plot(i, x_data1,y_data1, x_data1_r, y_data1_r,x_data1_l,y_data1_l,x_d
 
     
     return scat1, scat2, scat1_r, scat2_r, scat1_l, scat2_l
+
+
+def update_plot_task2(i, x_data1_blue,x_data1_right_blue,x_data1_left_blue,y_data1_blue, x_data1_red, y_data1_red,x_data1_right_red,x_data1_left_red,scat1,scat1_right,scat1_left, scat2,scat2_right,scat2_left):
+    data1 = np.array([x_data1_blue[i],y_data1_blue[i]]).T
+    scat1.set_offsets(data1)
+    data2 = np.array([x_data1_red[i],y_data1_red[i]]).T
+    scat2.set_offsets(data2)
+
+    data1_r = np.array([x_data1_right_blue[i],y_data1_blue[i]]).T
+    scat1_right.set_offsets(data1_r)
+    data2_r = np.array([x_data1_right_red[i],y_data1_red[i]]).T
+    scat2_right.set_offsets(data2_r)
+
+    data1_l = np.array([x_data1_left_blue[i],y_data1_blue[i]]).T
+    scat1_left.set_offsets(data1_l)
+    data2_l = np.array([x_data1_left_red[i],y_data1_red[i]]).T
+    scat2_left.set_offsets(data2_l)
+
+
+    
+    return scat1, scat2, scat1_right, scat2_right, scat1_left, scat2_left
         
 
 def error_plot(errors, names):
