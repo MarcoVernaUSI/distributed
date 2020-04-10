@@ -37,24 +37,6 @@ import torch
 #implementazione
 #risultati.
 
-def save_log(N, states_dist, control_dist,states_comm, control_comm, c_com):
-
-    comm_data = np.append(np.zeros((c_com.shape[0],1)), c_com, axis=1)
-    comm_data = np.append(comm_data, np.zeros((c_com.shape[0],1)), axis=1)
-    
-    for i in range(N):
-
-        sensing_dist= states_dist[:,i,3:5]
-        sensing_comm= states_comm[:,i,3:5]        
-
-        np.savetxt("logs/distr/thymio_"+str(i+1)+"_sensing.csv", sensing_dist, delimiter=",", fmt='%1.6f')
-        np.savetxt("logs/distr/thymio_"+str(i+1)+"_control.csv", control_dist[:,i], delimiter=",",fmt='%1.6f')
-        np.savetxt("logs/comm/thymio_"+str(i+1)+"_sensing.csv", sensing_comm, delimiter=",",fmt='%1.6f')
-        np.savetxt("logs/comm/thymio_"+str(i+1)+"_control.csv", control_comm[:,i], delimiter=",",fmt='%1.6f')
-        np.savetxt("logs/comm/thymio_"+str(i+1)+"_comm_tx.csv", c_com[:,i], delimiter=",",fmt='%1.6f')
-        np.savetxt("logs/comm/thymio_"+str(i+1)+"_comm_rx.csv", np.stack([comm_data[:,i],comm_data[:,i+2]], axis=1), delimiter=",",fmt='%1.6f')
-
-
 if __name__ == '__main__':
     # Parameters
     train = True
